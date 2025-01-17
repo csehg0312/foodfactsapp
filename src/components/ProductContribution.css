@@ -1,0 +1,79 @@
+.product-contribution-container {
+    max-width: 600px;
+    margin: 0 auto;
+    padding: 20px;
+    background-color: #f9f9f9;
+    border-radius: 10px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  }
+  
+  .contribution-form {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+  }
+  
+  .form-section {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+  }
+  
+  .form-section label {
+    font-weight: bold;
+    color: #333;
+  }
+  
+  .form-section input {
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+  }
+  
+  .nutrition-section {
+    background-color: #f1f1f1;
+    padding: 15px;
+    border-radius: 8px;
+  }
+  
+  .image-previews {
+    display: flex;
+    gap: 10px;
+    overflow-x: auto;
+  }
+  
+  .image-preview {
+    max-width: 100px;
+    max-height: 100px;
+    object-fit: cover;
+    border-radius: 5px;
+  }
+  
+  .submit-btn {
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    padding: 12px; border-radius: 5px;
+    cursor: pointer;
+    font-size: 16px;
+  }
+  
+  .submit-btn:hover {
+    background-color: #45a049;
+  }
+  
+  .status-message {
+    margin-top: 15px;
+    padding: 10px;
+    border-radius: 5px;
+  }
+  
+  .status-message.success {
+    background-color: #d4edda;
+    color: #155724;
+  }
+  
+  .status-message.error {
+    background-color: #f8d7da;
+    color: #721c24;
+  }
