@@ -1,39 +1,47 @@
-import { createSignal, createEffect, Show } from "solid-js";
+import { createSignal, createEffect, Show, onCleanup } from "solid-js";
 import DataVisualizer from "./DataVisualizer";
 import Quagga from "quagga";
 import "./BarcodeScanner.css";
 import ProductContribution from './ProductContribution';
 
 const BarcodeScanner = () => {
-
-  // const openFoodFactsClient = createOpenFoodFactsClient();
-
   const [barcodeData, setBarcodeData] = createSignal(null);
   const [imagePreview, setImagePreview] = createSignal(null);
   const [scanError, setScanError] = createSignal(null);
   const [isScanning, setIsScanning] = createSignal(false);
   const [productFound, setProductFound] = createSignal(false);
+  const [cameraStream, setCameraStream] = createSignal(null);
+  const [isLiveScanning, setIsLiveScanning] = createSignal(false);
+  const [quaggaInit, setQuaggaInit] = createSignal(false);
+
+  // Ref for video container
+  let videoContainer;
 
   const handleFileInput = (event) => {
     const file = event.target.files[0];
     if (file) {
-      // Reset states
-      setImagePreview(null);
-      setScanError(null);
-      setIsScanning(true);
-      setProductFound(false);
-      setBarcodeData(null);
-
-      // Create image preview
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setImagePreview(reader.result);
-      };
-      reader.readAsDataURL(file);
-
-      // Decode barcode
+      resetScannerState();
+      createImagePreview(file);
       decodeBarcode(file);
     }
+  };
+
+  const resetScannerState = () => {
+    setImagePreview(null);
+    setScanError(null);
+    setIsScanning(true);
+    setProductFound(false);
+    setBarcodeData(null);
+    setIsLiveScanning(false);
+    setQuaggaInit(false);
+  };
+
+  const createImagePreview = (file) => {
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setImagePreview(reader.result);
+    };
+    reader.readAsDataURL(file);
   };
 
   const decodeBarcode = (imageFile) => {
@@ -41,32 +49,15 @@ const BarcodeScanner = () => {
       Quagga.decodeSingle(
         {
           src: URL.createObjectURL(imageFile),
-          numOfWorkers: navigator.hardwareConcurrency || 4,
+          numOfWorkers: 0, // Set to 0 to avoid worker initialization issues
           locate: true,
           inputStream: {
             size: 800,
-            singleChannel: true // try processing color image
-          },
-          locator: {
-            patchSize: "medium",
-            halfSample: true
+            singleChannel: false // Changed to false to avoid initialization issues
           },
           decoder: {
-            readers: [
-              "ean_reader",
-              "ean_8_reader",
-              "code_128_reader",
-              "code_39_reader",
-              "code_39_vin_reader",
-              "upc_reader",
-              "upc_e_reader"
-              // "ean_13_reader"
-            ]
-          },
-          debug: {
-            drawBoundingBox: true,
-            showFrequency: true,
-            drawScanline: true
+            readers: ["ean_reader", "ean_8_reader", "code_128_reader", 
+                     "code_39_reader", "upc_reader", "upc_e_reader"]
           }
         },
         (result) => {
@@ -87,93 +78,124 @@ const BarcodeScanner = () => {
     });
   };
 
+  const initQuaggaConfig = {
+    inputStream: {
+      name: "Live",
+      type: "LiveStream",
+      target: null, // Will be set later
+      constraints: {
+        width: 640,
+        height: 480,
+        facingMode: "environment"
+      }
+    },
+    decoder: {
+      readers: ["ean_reader", "ean_8_reader", "code_128_reader", 
+                "code_39_reader", "upc_reader", "upc_e_reader"]
+    },
+    locate: true,
+    numOfWorkers: 0 // Set to 0 to avoid worker initialization issues
+  };
+
+  const startLiveScanning = async () => {
+    try {
+      await stopLiveScanning();
+
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { 
+          facingMode: 'environment',
+          width: { ideal: 1280 },
+          height: { ideal: 720 }
+        },
+        audio: false
+      });
+
+      setCameraStream(stream);
+      setIsLiveScanning(true);
+      setScanError(null);
+
+      // Update config with current target
+      const config = { ...initQuaggaConfig };
+      config.inputStream.target = videoContainer;
+
+      try {
+        await new Promise((resolve, reject) => {
+          Quagga.init(config, (err) => {
+            if (err) {
+              console.error("Quagga initialization error:", err);
+              reject(err);
+              return;
+            }
+            setQuaggaInit(true);
+            resolve();
+          });
+        });
+
+        Quagga.start();
+        
+        Quagga.onDetected((result) => {
+          if (result && result.codeResult) {
+            setBarcodeData(result.codeResult.code);
+            stopLiveScanning();
+          }
+        });
+
+      } catch (quaggaError) {
+        console.error("Quagga error:", quaggaError);
+        throw new Error("Failed to initialize barcode scanner");
+      }
+
+    } catch (error) {
+      console.error("Live scanning error:", error);
+      setScanError("Could not access camera or start scanning");
+      stopLiveScanning();
+    }
+  };
+
+  const stopLiveScanning = async () => {
+    if (quaggaInit()) {
+      try {
+        Quagga.offDetected();
+        Quagga.stop();
+      } catch (error) {
+        console.warn("Error stopping Quagga:", error);
+      }
+      setQuaggaInit(false);
+    }
+
+    const stream = cameraStream();
+    if (stream) {
+      stream.getTracks().forEach(track => {
+        track.stop();
+      });
+      setCameraStream(null);
+    }
+
+    if (videoContainer) {
+      videoContainer.innerHTML = '';
+    }
+
+    setIsLiveScanning(false);
+    setScanError(null);
+  };
+
   const clearScanner = () => {
     setBarcodeData(null);
     setImagePreview(null);
     setScanError(null);
     setProductFound(false);
+    stopLiveScanning();
   };
 
-  // Optional: Add live video scanning capability
-  const startLiveScanning = async () => {
-    const supports = navigator.mediaDevices.getSupportedConstraints();
-    if (!supports.facingMode) {
-      setScanError("Live scanning is not supported on this device.");
-      return;
-    }
-  
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: true,
-        audio: false
-      });
-  
-      const videoElement = document.querySelector('camera-preview');
-      if (!videoElement) {
-        setScanError("Live scanning is not supported on this device.");
-        stream.getTracks().forEach(track => track.stop()); // Stop the video stream
-        return;
-      }
-  
-      videoElement.srcObject = stream;
-  
-      Quagga.init({
-        inputStream: {
-          name: "Live",
-          type: "LiveStream",
-          target: videoElement
-        },
-        locator: {
-          patchSize: "medium",
-          halfSample: true
-        },
-        numOfWorkers: navigator.hardwareConcurrency || 4,
-        decoder: {
-          readers: [
-            "ean_reader",
-            "ean_8_reader",
-            "ean_13_reader",
-            "code_128_reader",
-            "code_39_reader",
-            "upc_reader",
-            "upc_e_reader"
-          ]
-        },
-        locate: true
-      }, (err) => {
-        if (err) {
-          console.error("Initialization error:", err);
-          setScanError("Error initializing Quagga.");
-          Quagga.stop(); // Stop Quagga if initialization fails
-          stream.getTracks().forEach(track => track.stop()); // Stop the video stream
-          return;
-        }
-        Quagga.start();
-      });
-  
-      Quagga.onDetected((result) => {
-        if (result && result.codeResult) {
-          setBarcodeData(result.codeResult.code);
-          Quagga.stop(); // Stop scanning after detecting a barcode
-        }
-      });
-  
-      videoElement.addEventListener('error', () => {
-        setScanError("Error starting video stream.");
-        Quagga.stop(); // Stop Quagga if video stream fails
-        stream.getTracks().forEach(track => track.stop()); // Stop the video stream
-      });
-    } catch (error) {
-      setScanError("Error starting live scanning.");
-      Quagga.stop(); // Stop Quagga if getUserMedia fails
-    }
-  };
+  onCleanup(() => {
+    stopLiveScanning();
+  });
+
   return (
     <div class="barcode-scanner-container">
       <div class="scanner-card">
         <h2 class="scanner-title">Barcode Scanner</h2>
         
-        {/* File Input Section */}
         <div class="file-input-wrapper">
           <input 
             type="file" 
@@ -188,13 +210,38 @@ const BarcodeScanner = () => {
             </svg>
             Choose Image
           </label>
-          <button onClick={startLiveScanning} class="live-scan-button">
-            Live Scan
-          </button>
+          <Show 
+            when={!isLiveScanning()} 
+            fallback={
+              <button 
+                onClick={stopLiveScanning} 
+                class="stop-scan-button"
+              >
+                Stop Scanning
+              </button>
+            }
+          >
+            <button 
+              onClick={startLiveScanning} 
+              class="live-scan-button"
+            >
+              Live Scan
+            </button>
+          </Show>
         </div>
-        <div id="camera-preview" style="display: none;"></div>
 
-        {/* Image Preview and Scanning State */}
+        <Show when={isLiveScanning()}>
+          <div 
+            ref={videoContainer}
+            class="video-preview-container"
+            style={{
+              width: '100%',
+              maxHeight: '300px',
+              overflow: 'hidden'
+            }}
+          />
+        </Show>
+
         <Show when={imagePreview()}>
           <div class="image-preview-container">
             <img 
@@ -211,7 +258,6 @@ const BarcodeScanner = () => {
           </div>
         </Show>
 
-        {/* Manual Barcode Input */}
         <div class="manual-input-section">
           <h3>Or Enter Barcode Manually</h3>
           <div class="manual-input-wrapper">
@@ -220,7 +266,6 @@ const BarcodeScanner = () => {
               placeholder="Enter barcode number"
               value={barcodeData() || ''}
               onInput={(e) => {
-                // Only reset specific states
                 setScanError(null);
                 setProductFound(false);
                 setBarcodeData(e.target.value);
@@ -237,7 +282,6 @@ const BarcodeScanner = () => {
           </div>
         </div>
 
-        {/* Error Message */}
         <Show when={scanError()}>
           <div class="error-message">
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
@@ -247,7 +291,6 @@ const BarcodeScanner = () => {
           </div>
         </Show>
 
-        {/* Barcode Display */}
         <Show when={barcodeData()}>
           <div class="barcode-display">
             <h3>Scanned Barcode:</h3>
@@ -255,20 +298,15 @@ const BarcodeScanner = () => {
           </div>
         </Show>
 
-        {/* Product Visualizer */}
         <Show when={barcodeData()}>
           <DataVisualizer 
             barcode={barcodeData()} 
             onProductFound={() => setProductFound(true)}
             onProductError={(error) => {
               setScanError(error);
-              // Do not clear barcodeData
             }}
           />
         </Show>
-        {/* <Show when={barcodeData() && !productFound()}>
-          <ProductContribution barcode={barcodeData()} />
-        </Show> */}
       </div>
     </div>
   );
