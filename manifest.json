@@ -30,7 +30,7 @@
     ],
     "id": "/",
     "name": "Food Facts App",
-    "short_name": "Fodd Facts",
+    "short_name": "Food Facts",
     "start_url": "/",
     "scope": "/"
   }
