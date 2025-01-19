@@ -9,18 +9,20 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.ico', 'robots.txt', 'icons/*.png'],
       manifest: {
-          name: 'My Progressive Web App',
-          short_name: 'MyPWA',
-          description: 'My awesome PWA',
-          theme_color: '#ffffff',
+          name: 'Food Facts App',
+          short_name: 'Food Facts',
+          description: 'Simple OpenFoodFacts api call application using barcode scanner to identify ean numbers and fetch nutrition data.',
+          theme_color: '#8936FF',
           icons: [
               {
-                  src: '/icons/icon-192x192.png',
-                  sizes: '192x192',
+                  purpose: 'maskable',
+                  src: "/icons/icon512_maskable.png",
+                  sizes: '512x512',
                   type: 'image/png'
               },
               {
-                  src: '/icons/icon-512x512.png',
+                  purpose: 'any',
+                  src: "/icons/icon512_rounded.png",
                   sizes: '512x512',
                   type: 'image/png'
               }
