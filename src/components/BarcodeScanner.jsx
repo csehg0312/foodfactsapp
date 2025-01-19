@@ -94,7 +94,7 @@ const BarcodeScanner = () => {
                 "code_39_reader", "upc_reader", "upc_e_reader"]
     },
     locate: true,
-    numOfWorkers: 0 // Set to 0 to avoid worker initialization issues
+    numOfWorkers: 2 // Set to 0 to avoid worker initialization issues
   };
 
   const startLiveScanning = async () => {
