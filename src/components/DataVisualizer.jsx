@@ -6,7 +6,7 @@ import './DataVisualizer.css';
 const createOpenFoodFactsClient = () => {
     const APP_NAME = 'BarcodeScannerApp';
     const APP_VERSION = '1.0';
-    const CONTACT_EMAIL = 'support@barcodescanner.app';
+    const CONTACT_EMAIL = 'csgabor.levelupdigital@gmail.com';
   
     return axios.create({
       baseURL: 'https://world.openfoodfacts.org/api/v2/product',
@@ -107,7 +107,9 @@ const DataVisualizer = (props) => {
         name: product.product_name || 'Unknown Product',
         brands: product.brands || 'N/A',
         categories: product.categories || 'N/A',
-        
+        ingredients: Array.isArray(product.ingredients_tags) && product.ingredients_tags.length > 0 
+                      ? product.ingredients_tags.join(', ') 
+                      : 'N/A',
         nutritionGrade: product.nutrition_grades || 'N/A',
         
         nutrition: {
@@ -118,13 +120,13 @@ const DataVisualizer = (props) => {
           fat: product.nutriments?.fat || 'N/A',
           saturatedFat: product.nutriments?.['saturated-fat'] || 'N/A',
         },
-
+      
         images: {
           front: product.selected_images?.front?.display?.['en'] || 
                  product.image_front_url || 
                  null,
         },
-
+      
         allergens: product.allergens_hierarchy || [],
         labels: product.labels_hierarchy || [],
       };
@@ -245,6 +247,26 @@ const DataVisualizer = (props) => {
             </div>
 
             {/* Allergens and Labels with Responsive Handling */}
+            <Show when={productData().ingredients.length > 0}>
+              <div class="additional-info">
+                <h3>Ingredients</h3>
+                <div class="ingredients-container">
+                  {(productData().ingredients || "")
+                    .split(',')
+                    .map(ingredient => ingredient.trim())
+                    .filter(ingredient => ingredient)
+                    .map((ingredient) => {
+                      // Remove the 'en:' prefix if it exists
+                      const cleanedIngredient = ingredient.replace(/^en:\s*/, '');
+                      return (
+                        <span class="category-chip">{truncateText(cleanedIngredient, 30)}</span>
+                      );
+                    })
+                  }
+                </div>
+              </div>
+            </Show>
+
             <Show when={productData().allergens.length > 0}>
               <div class="additional-info">
                 <h3>Allergens</h3>

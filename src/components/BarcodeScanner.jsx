@@ -13,6 +13,7 @@ const BarcodeScanner = () => {
   const [cameraStream, setCameraStream] = createSignal(null);
   const [isLiveScanning, setIsLiveScanning] = createSignal(false);
   const [quaggaInit, setQuaggaInit] = createSignal(false);
+  const [openedContribution, setOpenContribution] = createSignal(false);
 
   // Ref for video container
   let videoContainer;
@@ -191,6 +192,10 @@ const BarcodeScanner = () => {
     stopLiveScanning();
   });
 
+  const open_close_Contribution = () => {
+    setOpenContribution(!openedContribution());
+  };
+
   return (
     <div class="barcode-scanner-container">
       <div class="scanner-card">
@@ -203,6 +208,7 @@ const BarcodeScanner = () => {
             accept="image/*" 
             onChange={handleFileInput}
             class="file-input"
+            capture="environment"
           />
           <label for="barcode-file-input" class="file-input-label">
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
@@ -306,6 +312,12 @@ const BarcodeScanner = () => {
               setScanError(error);
             }}
           />
+        </Show>
+        <button onClick={open_close_Contribution}>
+          {openedContribution() ? "Close" : "Open"} Contribution
+        </button>
+        <Show when={openedContribution()}>
+          <ProductContribution barcode={barcodeData()} />
         </Show>
       </div>
     </div>

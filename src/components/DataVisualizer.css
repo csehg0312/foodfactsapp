@@ -7,6 +7,28 @@
     margin: auto;
   }
   
+  .ingredients-container {
+    display: flex;
+    flex-wrap: wrap; /* Allow items to wrap to the next line */
+    gap: 8px; /* Space between items */
+  }
+  
+  .category-chip {
+    display: inline-block;
+    padding: 8px 12px;
+    background-color: #f0f0f0;
+    border-radius: 4px;
+    font-size: 14px; /* Adjust font size as needed */
+    max-width: calc(50% - 8px); /* Adjust width for responsiveness */
+    box-sizing: border-box; /* Include padding in width calculation */
+  }
+  
+  @media (max-width: 768px) {
+    .category-chip {
+      max-width: calc(100% - 8px); /* Full width on smaller screens */
+    }
+  }
+  
   .product-card {
     background: #fff;
     border-radius: 8px;

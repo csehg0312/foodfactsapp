@@ -1,92 +1,97 @@
-import { createSignal, createEffect, For } from 'solid-js';
+import { createSignal } from 'solid-js';
 import axios from 'axios';
 import './ProductContribution.css';
 
 const ProductContribution = (props) => {
-  const [productData, setProductData] = createSignal({
-    barcode: props.barcode || '',
-    name: '',
-    brands: [], // Changed to array for multiple brands
-    categories: [], // Changed to array for multiple categories
-    packaging: [], // Added packaging as array
-    labels: [], // Added labels
-    nutritionGrade: '', // Added nutrition grade
-    nutrition: {
-      sugar: 0,
-      salt: 0,
-      proteins: 0,
-      saturatedFat: 0,
-      calories: 0
+  const initialProductData = {
+    code: props.barcode || '',
+    product_name: '',
+    brands: '',
+    categories: '',
+    packaging: '',
+    labels: '',
+    nutrition_grades: '',
+    allergens: '',
+    ingredients: '',
+    nutriments: {
+      data: [
+        {
+          sugars: 0,
+          salt: 0,
+          proteins: 0,
+          'saturated-fat': 0,
+          energy: 0
+        }
+      ]
     },
-    images: [],
-    allergens: [] // Optional: added allergens
-  });
+    images: []
+  };
 
+  const [productData, setProductData] = createSignal(initialProductData);
   const [currentInput, setCurrentInput] = createSignal({
     brand: '',
     category: '',
     packaging: '',
     label: '',
-    allergen: ''
+    allergen: '',
+    ingredient: ''
   });
 
-  const [imagePreview, setImagePreview] = createSignal(null);
   const [contributionStatus, setContributionStatus] = createSignal(null);
 
-  // Nutrition grade options
   const nutritionGrades = ['A', 'B', 'C', 'D', 'E', 'UNKNOWN'];
 
-  // Generic method to add items to array fields
   const addItemToField = (field, value) => {
     if (!value.trim()) return;
 
     setProductData(prev => ({
       ...prev,
-      [field]: [...(prev[field] || []), value.trim()]
+      [field]: prev[field] ? `${prev[field]}, ${value.trim()}` : value.trim()
     }));
 
-    // Reset current input for the specific field
     setCurrentInput(prev => ({
       ...prev,
       [field.slice(0, -1)]: ''
     }));
   };
 
-  // Method to remove item from array fields
-  const removeItemFromField = (field, index) => {
-    setProductData(prev => ({
-      ...prev,
-      [field]: prev[field].filter((_, i) => i !== index)
-    }));
-  };
-
-  const handleInputChange = (field, value) => {
+  const removeItemFromField = (field, itemToRemove) => {
     setProductData(prev => {
-      const updated = { ...prev };
-      
-      // Handle nested nutrition data with float conversion
-      if (field.startsWith('nutrition.')) {
-        const nutritionField = field.split('.')[1];
-        updated.nutrition[nutritionField] = parseFloat(value) || 0;
-      } else {
-        updated[field] = value;
-      }
-      
-      return updated;
+      const items = prev[field].split(',').map(item => item.trim());
+      const filteredItems = items.filter(item => item !== itemToRemove);
+      return {
+        ...prev,
+        [field]: filteredItems.join(', ')
+      };
     });
   };
 
-  const handleNutritionInput = (key, value) => {
-    // Directly set the input value without immediate conversion
+  const getArrayFromField = (field) => {
+    if (!productData()[field]) return [];
+    return productData()[field].split(',').map(item => item.trim()).filter(item => item);
+  };
+
+  const handleInputChange = (field, value) => {
     setProductData(prev => ({
       ...prev,
-      nutrition: {
-        ...prev.nutrition,
-        [key]: value  // Keep as string
-      }
+      [field]: value
     }));
   };
-  
+
+  const handleNutriscoreInput = (key, value) => {
+    setProductData(prev => {
+      const updatedNutriscore = prev.nutriments.data[0];
+      return {
+        ...prev,
+        nutriments: {
+          data: [{
+            ...updatedNutriscore,
+            [key]: value
+          }]
+        }
+      };
+    });
+  };
 
   const handleImageUpload = (event) => {
     const files = event.target.files;
@@ -107,42 +112,36 @@ const ProductContribution = (props) => {
 
   const submitContribution = async () => {
     try {
-      // Validate required fields
-      if (!productData().name || productData().brands.length === 0) {
+      if (!productData().product_name || !productData().brands) {
         setContributionStatus({
           type: 'error',
           message: 'Please fill in at least the name and a brand'
         });
         return;
       }
-
-      // Prepare form data for OpenFoodFacts API
+  
       const formData = new FormData();
-      
-      // Add text data
-      formData.append('product_name', productData().name);
-      formData.append('brands', productData().brands.join(','));
-      formData.append('code', productData().barcode);
-      formData.append('categories', productData().categories.join(','));
-      formData.append('packaging', productData().packaging.join(','));
-      formData.append('labels', productData().labels.join(','));
-      formData.append('nutrition_grades', productData().nutritionGrade);
-
-      // Add nutrition data
-      const nutrition = productData().nutrition;
-      formData.append('nutrition_data_per', 'serving');
-      formData.append('nutrition_sugars', nutrition.sugar);
-      formData.append('nutrition_salt', nutrition.salt);
-      formData.append('nutrition_proteins', nutrition.proteins);
-      formData.append('nutrition_saturated-fat', nutrition.saturatedFat);
-      formData.append('nutrition_energy', nutrition.calories);
-
-      // Add images
+      formData.append('code', productData().code);
+      formData.append('product_name', productData().product_name);
+      formData.append('brands', `en:${productData().brands}`);
+      formData.append('categories', `en:${productData().categories}`);
+      formData.append('packaging', `en:${productData().packaging}`);
+      formData.append('labels', `en:${productData().labels}`);
+      formData.append('nutrition_grades', `en:${productData().nutrition_grades}`);
+      formData.append('allergens', `en:${productData().allergens}`);
+      formData.append('ingredients_tags', `en:${productData().ingredients}`);
+  
+      const nutriscoreData = productData().nutriments.data[0];
+      formData.append('nutriments[sugars]', nutriscoreData.sugars || 0);
+      formData.append('nutriments[salt]', nutriscoreData.salt || 0);
+      formData.append('nutriments[proteins]', nutriscoreData.proteins || 0);
+      formData.append('nutriments[saturated-fat]', nutriscoreData['saturated-fat'] || 0);
+      formData.append('nutriments[energy-kcal]', nutriscoreData.energy || 0);
+  
       productData().images.forEach((image, index) => {
         formData.append(`image_${index}`, image.file);
       });
-
-      // Send contribution to OpenFoodFacts
+  
       const response = await axios.post(
         'https://world.openfoodfacts.org/cgi/product_jqm2.pl', 
         formData,
@@ -152,12 +151,12 @@ const ProductContribution = (props) => {
           }
         }
       );
-
+  
       setContributionStatus({
         type: 'success',
         message: 'Product successfully contributed!'
       });
-
+  
     } catch (error) {
       console.error('Contribution Error:', error);
       setContributionStatus({
@@ -167,17 +166,50 @@ const ProductContribution = (props) => {
     }
   };
 
+  const TagInput = ({ field, label, placeholder }) => (
+    <div class="form-section">
+      <label>{label}</label>
+      <div class="multi-input-container">
+        <input 
+          type="text" 
+          placeholder={placeholder}
+          value={currentInput()[field.slice(0, -1)]}
+          onInput={(e) => setCurrentInput(prev => ({ ...prev, [field.slice(0, -1)]: e.target.value }))}
+          onKeyPress={(e) => e.key === 'Enter' && addItemToField(field, currentInput()[field.slice(0, -1)])}
+        />
+        <button 
+          onClick={() => addItemToField(field, currentInput()[field.slice(0, -1)])}
+          class="add-button"
+        >
+          Add {field.slice(0, -1)}
+        </button>
+      </div>
+      <div class="tags-container">
+        {getArrayFromField(field).map((item) => (
+          <div class="tag">
+            <span>{item}</span>
+            <button 
+              onClick={() => removeItemFromField(field, item)}
+              class="remove-tag"
+            >
+              ×
+            </button>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+
   return (
     <div class="product-contribution-container">
       <h2>Contribute Missing Product</h2>
       
       <div class="contribution-form">
-        {/* Existing barcode and product name inputs */}
         <div class="form-section">
           <label>Barcode</label>
           <input 
             type="text" 
-            value={productData().barcode} 
+            value={productData().code} 
             disabled 
           />
         </div>
@@ -187,89 +219,52 @@ const ProductContribution = (props) => {
           <input 
             type="text" 
             placeholder="Enter product name"
-            value={productData().name}
-            onInput={(e) => handleInputChange('name', e.target.value)}
+            value={productData().product_name}
+            onInput={(e) => handleInputChange('product_name', e.target.value)}
           />
         </div>
 
-        {/* Brands Section with Multiple Input */}
-        <div class="form-section">
-          <label>Brands *</label>
-          <div class="multi-input-container">
-            <input 
-              type="text" 
-              placeholder="Enter brand name"
-              value={currentInput().brand}
-              onInput={(e) => setCurrentInput(prev => ({ ...prev, brand: e.target.value }))}
-              onKeyPress={(e) => e.key === 'Enter' && addItemToField('brands', currentInput().brand)}
-            />
-            <button 
-              onClick={() => addItemToField('brands', currentInput().brand)}
-              class="add-button"
-            >
-              Add Brand
-            </button>
-          </div>
-          <div class="input-chips">
-            <For each={productData().brands}>
-              {(brand, index) => (
-                <span class="chip">
-                  {brand}
-                  <button 
-                    class="remove-chip" 
-                    onClick={() => removeItemFromField('brands', index())}
-                  >
-                    ×
-                  </button>
-                </span>
-              )}
-            </For>
-          </div>
-        </div>
+        <TagInput 
+          field="brands" 
+          label="Brands *" 
+          placeholder="Enter brand name"
+        />
 
-        {/* Similar multi-input sections for Categories, Packaging, Labels */}
-        {['categories', 'packaging', 'labels', 'allergens'].map(field => (
-          <div class="form-section">
-            <label>{field.charAt(0).toUpperCase() + field.slice(1)}</label>
-            <div class="multi-input-container">
-              <input 
-                type="text" 
-                placeholder={`Enter ${field.slice(0, -1)} name`}
-                value={currentInput()[field.slice(0, -1)]}
-                onInput={(e) => setCurrentInput(prev => ({ ...prev, [field.slice(0, -1)]: e.target.value }))}
-                onKeyPress={(e) => e.key === 'Enter' && addItemToField(field, currentInput()[field.slice(0, -1)])}
-              />
-              <button 
-                onClick={() => addItemToField(field, currentInput()[field.slice(0, -1)])}
-                class="add-button"
-              >
-                Add {field.slice(0, -1)}
-              </button>
-            </div>
-            <div class="input-chips">
-              <For each={productData()[field]}>
-                {(item, index) => (
-                  <span class="chip">
-                    {item}
-                    <button 
-                      class="remove-chip" 
-                      onClick={() => removeItemFromField(field, index())}
-                    >
-                      ×
-                    </button>
-                  </span>
-                )}
-              </For>
-            </div>
-          </div>
-        ))}
+        <TagInput 
+          field="categories" 
+          label="Categories" 
+          placeholder="Enter category name"
+        />
 
-        {/* Nutrition Grade Selection */}
+        <TagInput 
+          field="packaging" 
+          label="Packaging" 
+          placeholder="Enter packaging type"
+        />
+
+        <TagInput 
+          field="labels" 
+          label="Labels" 
+          placeholder="Enter label name"
+        />
+
+        <TagInput 
+          field="allergens" 
+          label="Allergens" 
+          placeholder="Enter allergen name"
+        />
+
+        <TagInput 
+          field="ingredients" 
+          label="Ingredients" 
+          placeholder="Enter ingredient name"
+        />
+
         <div class="form-section">
           <label>Nutrition Grade</label>
           <select 
-            value={productData().nutritionGrade}
-            onChange={(e) => handleInputChange('nutritionGrade', e.target.value)}
+            value={productData().nutrition_grades}
+            onChange={(e) => handleInputChange('nutrition_grades', e.target.value)}
           >
             <option value="">Select Grade</option>
             {nutritionGrades.map(grade => (
@@ -278,28 +273,22 @@ const ProductContribution = (props) => {
           </select>
         </div>
 
-        {/* Nutrition Information Section */}
         <div class="nutrition-section">
-          <h3>Nutrition Information</h3>
-          {Object.keys(productData().nutrition).map((key) => (
+          <h3>Nutriscore Information</h3>
+          {Object.keys(productData().nutriments.data[0]).map((key) => (
             <div class="form-section">
-              <label>{key.charAt(0).toUpperCase() + key.replace(/_/g, ' ').slice(1)}</label>
+              <label>{key.charAt(0).toUpperCase() + key.replace(/-/g, ' ').slice(1)}</label>
               <input 
-                type="text"  // Use text type for more flexible input
-                inputMode="decimal"  // Provides appropriate mobile keyboard
-                pattern="[0-9]*([.,][0-9]+)?"  // Allows decimal input
-                placeholder={`Enter ${key.replace(/_/g, ' ')}`}
-                value={productData().nutrition[key] ?? ''}
-                onInput={(e) => {
-                    // Directly pass the input value
-                    handleNutritionInput(key, e.target.value);
-                }}
-                />
+                type="number" 
+                step="0.01"
+                placeholder={`Enter ${key.replace(/-/g, ' ')}`}
+                value={productData().nutriments.data[0][key]}
+                onInput={(e) => handleNutriscoreInput(key, e.target.value)}
+              />
             </div>
           ))}
         </div>
 
-        {/* Product Images Section */}
         <div class="form-section">
           <label>Product Images</label>
           <input 
