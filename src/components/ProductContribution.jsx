@@ -132,7 +132,8 @@ const ProductContribution = (props) => {
       formData.append('ingredients_tags', `en:${productData().ingredients}`);
   
       const nutriscoreData = productData().nutriments.data[0];
-      formData.append('nutriments[sugars]', nutriscoreData.sugars || 0);
+      formData.append('nutriments[carbohydrates]', nutriscoreData.sugars || 0);
+      
       formData.append('nutriments[salt]', nutriscoreData.salt || 0);
       formData.append('nutriments[proteins]', nutriscoreData.proteins || 0);
       formData.append('nutriments[saturated-fat]', nutriscoreData['saturated-fat'] || 0);

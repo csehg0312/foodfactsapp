@@ -1,8 +1,9 @@
 import { createSignal, createEffect, Show, onCleanup } from "solid-js";
-import DataVisualizer from "./DataVisualizer";
+// import DataVisualizer from "./DataVisualizer";
+import DataVisualizer from "./NewDataVisualizer";
 import Quagga from "quagga";
 import "./BarcodeScanner.css";
-import ProductContribution from './ProductContribution';
+import ProductContribution from './NewProductContribution';
 
 const BarcodeScanner = () => {
   const [barcodeData, setBarcodeData] = createSignal(null);
@@ -313,12 +314,12 @@ const BarcodeScanner = () => {
             }}
           />
         </Show>
-        <button onClick={open_close_Contribution}>
+        {/* <button onClick={open_close_Contribution}>
           {openedContribution() ? "Close" : "Open"} Contribution
         </button>
         <Show when={openedContribution()}>
           <ProductContribution barcode={barcodeData()} />
-        </Show>
+        </Show> */}
       </div>
     </div>
   );

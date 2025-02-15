@@ -1,0 +1,166 @@
+.data-visualizer-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+    max-width: 100%;
+    margin: auto;
+  }
+  
+  .ingredients-container {
+    display: flex;
+    flex-wrap: wrap; /* Allow items to wrap to the next line */
+    gap: 8px; /* Space between items */
+  }
+  
+  .category-chip {
+    display: inline-block;
+    padding: 8px 12px;
+    background-color: #f0f0f0;
+    border-radius: 4px;
+    font-size: 14px; /* Adjust font size as needed */
+    max-width: calc(50% - 8px); /* Adjust width for responsiveness */
+    box-sizing: border-box; /* Include padding in width calculation */
+  }
+  
+  @media (max-width: 768px) {
+    .category-chip {
+      max-width: calc(100% - 8px); /* Full width on smaller screens */
+    }
+  }
+  
+  .product-card {
+    background: #fff;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    padding: 20px;
+    width: 100%;
+    max-width: 400px;
+    text-align: center;
+  }
+  
+  .product-header {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  
+  .product-image img {
+    max-width: 100%;
+    height: auto;
+    border-radius: 8px;
+  }
+
+  /* Categories Styling */
+.categories-container {
+    margin-bottom: 15px;
+  }
+  
+  .categories-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 8px;
+  }
+  
+  .category-chip {
+    background-color: #f0f0f0;
+    color: #333;
+    padding: 4px 8px;
+    border-radius: 16px;
+    font-size: 0.8rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 200px;
+    transition: background-color 0.3s ease;
+  }
+  
+  .category-chip:hover {
+    background-color: #e0e0e0;
+  }
+  
+  .nutrition-grade {
+    font-weight: bold;
+    margin-top: 10px;
+  }
+  
+  .nutrition-grade-a {
+    color: green;
+  }
+  
+  .nutrition-grade-b {
+    color: #4CAF50;
+  }
+  
+  .nutrition-grade-c {
+    color: #FFEB3B;
+  }
+  
+  .nutrition-grade-d {
+    color: #FF9800;
+  }
+  
+  .nutrition-grade-e {
+    color: red;
+  }
+  
+  .nutrition-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+    margin-top: 20px;
+    color: black;
+  }
+  
+  .nutrition-item {
+    display: flex;
+    justify-content: space-between;
+    padding: 10px;
+    border: 1px solid #e0e0e0;
+    border-radius: 4px;
+  }
+  
+  .reload-container {
+    margin-top: 20px;
+  }
+  
+  .reload-button {
+    background-color: #007BFF;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    padding: 10px 15px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+  }
+  
+  .reload-button svg {
+    margin-right: 5px;
+  }
+  
+  .loading-spinner {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  
+  .spinner {
+    border: 4px solid rgba(0, 0, 0, 0.1);
+    border-top: 4px solid #007BFF;
+    border-radius: 50%;
+    width: 30px;
+    height: 30px;
+    animation: spin 1s linear infinite;
+  }
+  
+  @keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+  
+  .error-message {
+    color: red;
+    margin-top: 10px;
+  }
